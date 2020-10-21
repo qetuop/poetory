@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <title>Characters</title>
+</head>
+
+<body>
+     <p>{{ form.update() }}</p>
+
+    <table id="example" border="1">
+        <thead>
+        <tr>
+            <th>{{ form.id.label }}</th>
+            <th>{{ form.league.label }}</th>
+            <th>{{ form.name.label }}</th>
+            <th>{{ form.class_.label }}</th>
+            <th>{{ form.ascendancy_class.label }}</th>
+            <th>{{ form.level.label }}</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for entry in entries %}
+        <tr>
+            <td> {{ entry.id }}</td>
+            <td> {{ entry.league }}</td>
+            <td> {{ entry.name }}</td>
+            <td> {{ entry.class_ }}</td>
+            <td> {{ entry.ascendancy_class }}</td>
+            <td> {{ entry.level }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+</body>
+
+</html>

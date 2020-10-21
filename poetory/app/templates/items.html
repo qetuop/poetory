@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <title>Items</title>
+</head>
+
+<body>
+     <p>{{ form.update() }}</p>
+
+    <table id="example" border="1">
+        <thead>
+        <tr>
+            <th>{{ form.id.label }}</th>
+            <th>{{ form.name.label }}</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for entry in items %}
+        <tr>
+            <td> {{ entry.id }}</td>
+            <td> {{ entry.name }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+</body>
+
+</html>
