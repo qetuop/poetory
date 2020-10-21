@@ -40,6 +40,23 @@ x-rate-limit-account-state: 46:60:60,77:240:0 =  3rd request
 '''
 rateState = {'short':{'curr':0, 'per':0, 'timeout':0}, 'long':{'curr':0, 'per':0, 'timeout':0}}
 
+
+
+'''
+https://www.pathofexile.com/api/leagues
+X-Rate-Limit-Policy': 'ladder-view', 'X-Rate-Limit-Rules': 'Ip', 'X-Rate-Limit-Ip': '5:5:10,10:10:30,15:10:300', 'X-Rate-Limit-Ip-State': '2:5:0,2:10:0,2:10:0',
+
+https://www.pathofexile.com/api/leagues
+'X-Rate-Limit-Policy': 'ladder-view', 'X-Rate-Limit-Rules': 'Ip,Account', 'X-Rate-Limit-Ip': '20:5:30,40:10:120,60:10:300', 'X-Rate-Limit-Ip-State': '2:5:0,2:10:0,2:10:0', 
+                                                                          'X-Rate-Limit-Account': '10:5:10,20:10:30,30:10:300', 'X-Rate-Limit-Account-State': '1:5:0,1:10:0,1:10:0'
+
+http://pathofexile.com/character-window/get-characters?accountName=qetuop
+'X-Rate-Limit-Policy': 'backend-character-request-limit', 'X-Rate-Limit-Rules': 'Ip', 'X-Rate-Limit-Ip': '60:60:60,200:120:900', 'X-Rate-Limit-Ip-State': '1:60:0,1:120:0',
+
+https://pathofexile.com/character-window/get-items?character=StrummBrand
+'X-Rate-Limit-Policy': 'backend-item-request-limit', 'X-Rate-Limit-Rules': 'Account', 'X-Rate-Limit-Account': '45:60:60,240:240:900', 'X-Rate-Limit-Account-State': '1:60:0,2:240:0'
+'''
+
 lastRequest = 0  #
 
 def setup(l, a, p):
@@ -75,8 +92,11 @@ def updateRate(header):
     global rateState
     global lastRequest
 
-    limitAcc = header['x-rate-limit-ip'].split(',')  # '45:60:60,240:240:900'
-    limitState = header['x-rate-limit-ip-state'].split(',')  # '1:60:0,1:240:0'
+    # TODO: figure this shit out, account vs ip vs [account,ip] vs .... limits.  what to store, check everytime...only based on request type....
+    #
+    type = header['X-Rate-Limit-Rules']
+    limitAcc = header['x-rate-limit-%s'%type].split(',')  # '45:60:60,240:240:900'
+    limitState = header['x-rate-limit-%s-state'%type].split(',')  # '1:60:0,1:240:0'
 
     # these shouldn't change often (ever?) but might as well update with every request...is that bad?
     rateLimit['short']['curr']      = limitAcc[0].split(':')[0]
@@ -128,7 +148,9 @@ def grabData( url ):
 
     # set curr rate limit data - will be out of date depending on how long between the next request but shouldn't
     # matter that much
-    updateRate(r.headers)
+    #print(url)
+    #print(r.headers)
+    #updateRate(r.headers)
 
 
     return r.json()

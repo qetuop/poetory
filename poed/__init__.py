@@ -83,6 +83,14 @@ class Item:
 
         #print(self.__class__, self.__module__)
 
+def findDiff(src,tgt):
+    diff = []
+    tgtSplit = tgt.split(" ")
+    for y in src.split(" "):
+        if y not in tgtSplit:
+            diff.append(y)
+    return diff
+
 def dict_to_obj(our_dict):
     """
     Function that takes in a dict and returns a custom object associated with the dict.
