@@ -15,7 +15,6 @@ git clone https://github.com/qetuop/poetory.git
 cd poetory
 python3.8 -m venv venv
 source venv/bin/activate
-pip3 install wheel
 pip install -r requirements.txt
 cd poetory
 cp config.json.default config.json
@@ -30,3 +29,7 @@ edit config.json and set account, league, poessid
 
 ### Run
 ```python3.8 poetory.py``` 
+
+open url 
+
+```http://127.0.0.1:5000/```

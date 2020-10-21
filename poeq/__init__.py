@@ -75,8 +75,8 @@ def updateRate(header):
     global rateState
     global lastRequest
 
-    limitAcc = header['X-Rate-Limit-Account'].split(',')  # '45:60:60,240:240:900'
-    limitState = header['X-Rate-Limit-Account-State'].split(',')  # '1:60:0,1:240:0'
+    limitAcc = header['x-rate-limit-ip'].split(',')  # '45:60:60,240:240:900'
+    limitState = header['x-rate-limit-ip-state'].split(',')  # '1:60:0,1:240:0'
 
     # these shouldn't change often (ever?) but might as well update with every request...is that bad?
     rateLimit['short']['curr']      = limitAcc[0].split(':')[0]

@@ -135,6 +135,7 @@ dmypy.json
 jsonData/*
 config.json
 poetory/app.db
+poetory/jsonData
 
 # mystuff
 json_bak/*
