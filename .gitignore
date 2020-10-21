@@ -131,10 +131,14 @@ dmypy.json
 # Pycharm
 .idea/
 
-# mystuff
+# poetory stuff
 jsonData/*
-json_bak/*
 config.json
+poetory/app.db
+
+# mystuff
+json_bak/*
 bak/
 data/
 *.bak
+test/
