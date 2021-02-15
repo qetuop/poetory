@@ -89,10 +89,18 @@ def index():
         #characters(account) # doesn't work
 
         #updateCharacters(account)
+        print(poeq.getNumTabs(league))
+        poeq.getStashInfo(league)
+        poeq.getStash(league)
+        characters = poeq.getCharacters(account)
+        print(characters)
+
+
 
         if form.characters.data:
             form = CharacterForm()
             entries = CharacterInfo.query.all()
+            print(entries)
             return render_template('characters.html', form=form, entries=entries)
 
         elif form.items.data:

@@ -140,6 +140,9 @@ def grabData( url ):
         sleep(1)
 
     r = requests.get(url, cookies=cookies, headers=headers)
+
+    # TODO: handle every other error?
+
     while (r.status_code == 429 ):
         print('RATE LIMTED....WAITING %s sec before retrying'%wait)
         r = requests.get(url, cookies=cookies)
@@ -183,6 +186,40 @@ def getLeagueNames():
 
     return leagues
 
+# stash id/name "tabs=1" provides this in a 'tabs' array of data
+'''
+"tabs": [
+    {
+      "n": "Cur",
+      "i": 0,
+      "id": "342f1c255cf3371c61f87ac1f002860e93ff1d18752ebe89658855dbc61f0a6e",
+      "type": "CurrencyStash",
+      "selected": true,
+      "colour": {
+        "r": 99,
+        "g": 128,
+        "b": 0
+      },
+      "srcL": "https://web.poecdn.com/gen/image/WzIzLDEseyJ0IjoibCIsImMiOi0xMDI1NjM4NH1d/add36a62cf/Stash_TabL.png",
+      "srcC": "https://web.poecdn.com/gen/image/WzIzLDEseyJ0IjoibSIsImMiOi0xMDI1NjM4NH1d/bca6333c61/Stash_TabL.png",
+      "srcR": "https://web.poecdn.com/gen/image/WzIzLDEseyJ0IjoiciIsImMiOi0xMDI1NjM4NH1d/1e0dc0f0ab/Stash_TabL.png"
+    },
+'''
+def getStashInfo(league):
+    url = 'https://pathofexile.com/character-window/get-stash-items?league=%s&tabs=1&accountName=%s' % (league, account)
+    out = grabData(url)
+
+    tabs = None
+    tabInfo = {}
+    try:
+        tabs = out['tabs']
+    except:
+        tabs = 'error'
+
+    dumpToFile('stashInfo.json', tabs)
+
+
+    return tabs
 
 def getNumTabs(league):
     url = 'https://pathofexile.com/character-window/get-stash-items?league=%s&accountName=%s' %(league,account)
@@ -190,12 +227,13 @@ def getNumTabs(league):
     #cookies = dict(POESESSID='de4c695e9a693a94b563a1727233c7b7')
     #cookies = dict(POESESSID='d')  # error
     #print(url)
-    r = requests.get(url, cookies=cookies)
+    #r = requests.get(url, cookies=cookies,headers=headers)
+    rjson = grabData(url)
 
     # checkForError(r.json())
     tabs = None
     try:
-        tabs = r.json()['numTabs']
+        tabs = rjson['numTabs']
     except:
         tabs = 'error'
 
