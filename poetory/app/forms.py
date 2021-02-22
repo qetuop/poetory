@@ -3,8 +3,9 @@ from wtforms import StringField, SelectField, PasswordField, BooleanField, Submi
 
 class LoginForm(FlaskForm):
     account = StringField('Account')
-    poessid = StringField('POESSID') # POESESSID de4c695e9a693a94b563a1727233c7b7
+    poesessid = StringField('POESESSID') # POESESSID de4c695e9a693a94b563a1727233c7b7
     league = SelectField(u'League')
+    verify = SubmitField('Verify')
     characters = SubmitField('Characters')  # TODO: temp buttons until i figure out how to use links to submit data
     items = SubmitField('Items')
     tabs = StringField('Verify')

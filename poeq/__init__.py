@@ -59,11 +59,15 @@ https://pathofexile.com/character-window/get-items?character=StrummBrand
 
 lastRequest = 0  #
 
-def setup(l, a, p):
+def setup(l, a, p, sleep=None):
     global league, account, poesessid, cookies
     league = l
     account = a
     poesessid = p
+
+    # TODO: temp, once ratelimit code fixed remove - and remove from config as well
+    if sleep!= None:
+        SLEEP = sleep
 
     cookies = dict(POESESSID='%s' % poesessid)
 
@@ -221,6 +225,11 @@ def getStashInfo(league):
 
     return tabs
 
+def verify():
+    out = getNumTabs('Standard')
+    return isinstance(out, int)  # TODO: fix if i change the getNumTabs RV
+
+
 def getNumTabs(league):
     url = 'https://pathofexile.com/character-window/get-stash-items?league=%s&accountName=%s' %(league,account)
 
@@ -259,6 +268,7 @@ def getCharacters(account):
 '''
 def getCharacterInventory(charName):
     url = 'https://pathofexile.com/character-window/get-items?character=%s'%charName
+    print(url)
     out = grabData(url)
     print(out)
     dumpToFile('%s.json' % charName, out)

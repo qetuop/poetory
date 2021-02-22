@@ -27,7 +27,8 @@ class Item:
                  properties=None, prophecyDiffText=None, prophecyText=None, requirements=None, secDescrText=None,
                  shaper=None,
                  socketedItems=None, sockets=None, stackSize=None, support=None, talismanTier=None, utilityMods=None,
-                 fractured=None, fracturedMods=None, incubatedItem=None, veiled=None, veiledMods=None, influences=None):
+                 fractured=None, fracturedMods=None, incubatedItem=None, veiled=None, veiledMods=None, influences=None,
+                 synthesised=None):
         self.category = category
         self.frameType = frameType
         self.h = h
@@ -79,16 +80,21 @@ class Item:
         self.veiled = veiled
         self.veiledMods = veiledMods
         self.influences = influences
+        self.synthesised = synthesised
         # hybrid = val gems, 2nd prop?
 
         #print(self.__class__, self.__module__)
 
+# src = Adds 3 to 6 Physical Damage to Attacks, tgt = Adds # to # Physical Damage
+# diff = [3,6]....at least it should
 def findDiff(src,tgt):
+
     diff = []
     tgtSplit = tgt.split(" ")
     for y in src.split(" "):
         if y not in tgtSplit:
             diff.append(y)
+    print(f"\tFind Diff: src = {src}, tgt = {tgt}, diff = {diff}")
     return diff
 
 def dict_to_obj(our_dict):

@@ -143,3 +143,5 @@ bak/
 data/
 *.bak
 test/
+poetory/affixFuzz.py
+poetory/fuzztest.py

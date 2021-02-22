@@ -10,7 +10,7 @@
 
 
     <h1>Sign In</h1>
-    <form action="" method="post" novalidate>
+<form method="POST" action="/verify">
         {{ form.hidden_tag() }}
         <p>
             {{ form.account.label }}<br>
@@ -20,19 +20,35 @@
             {% endfor %}
         </p>
         <p>
-            {{ form.poessid.label }}<br>
-            {{ form.poessid(size=32) }}<br>
-            {% for error in form.poessid.errors %}
+            {{ form.poesessid.label }}<br>
+            {{ form.poesessid(size=32) }}<br>
+            {% for error in form.poesessid.errors %}
             <span style="color: red;">[{{ error }}]</span>
             {% endfor %}
         </p>
+
+            {{ form.verify() }}
+
+            {% if verified == True %}
+             <span style="color: green;">[Verified]</span>
+        {% else %}
+            <span style="color: red;">[Error]</span>
+        {% endif %}
+
+
+
         <p>
             {{ form.league.label }}<br>
             {{ form.league() }}<br>
         </p>
+        </form>
 
+<form method="GET" action="/characters">
         <p>{{ form.characters() }}</p>
+</form>
+<form method="GET" action="/items">
         <p>{{ form.items() }}</p>
+</form>
 
         <p>
             {{ form.tabs.label }}<br>
@@ -41,7 +57,7 @@
             <span style="color: red;">[{{ error }}]</span>
             {% endfor %}
         </p>
-    </form>
+
 
 </body>
 </html>

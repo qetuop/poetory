@@ -11,18 +11,35 @@
 </head>
 
 <body>
-    <button onclick="getDataFile()">Data From File</button>
-    <button onclick="getData()">Data From Object</button>
+    <!-- <button onclick="getDataFile()">Data From File</button> -->
+    <button onclick="getData()">getData</button>
+    <button id="reload" >Reload</button>
+   <!-- <button onclick="getData2()" >Submit2</button>-->
+
 
     <div class="container">
-        <table id="example" class="display nowrap cell-border" width="100%">
+        <table id="myTable" class="display nowrap cell-border" width="100%">
         </table>
     </div>
 
     <div class="container">
-        <table id="example2" class="display nowrap cell-border">
+        <!--  <table id="example1" class="display nowrap cell-border"></table> -->
+        <!-- overflow-x: scroll; overflow-y: scroll; = scroll bars *within* page -->
+        <table id="example" class="display  cell-border" style="overflow-x: scroll; max-width: 90%; display: block; " cellspacing="0">
+            				<thead>
+					<tr>
+						<th>Name</th>
+					</tr>
+				</thead>
+
+				<tfoot>
+					<tr>
+						<th>Name</th>
+					</tr>
+				</tfoot>
         </table>
     </div>
+
 
     <!-- to use version from web
         <script type="text/javascript" charset="utf8" src="https://code.jquery.com/jquery-3.5.1.js"></script>

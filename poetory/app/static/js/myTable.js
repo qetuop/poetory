@@ -1,3 +1,57 @@
+function getData() {
+    $.ajax({
+        url: "/itemdata",
+        success: function(data) {
+            var columns = [];
+
+            visibleColumnNames = Object.assign(data.visible)
+            //console.log(visibleColumnNames)
+
+            columnNames = Object.keys(data.data[0]);
+            console.log(columnNames)
+            for (var i in columnNames) {
+                console.log(columnNames[i])
+                columns.push({
+                    data: columnNames[i],
+                    title: columnNames[i],
+                    visible: visibleColumnNames.includes(columnNames[i])
+                });
+            }
+
+            if (table !== null ) {
+                $('#example').DataTable().destroy();
+                table = null;
+                // empty in case the columns change
+                $('#example').empty();
+            }
+
+            var table = $('#example').DataTable({
+                data: data.data,
+                columns: columns
+            });
+
+        } // success
+    }); // ajax
+}
+
+$(document).ready( function () {
+
+  //$("#reload").click(getData()); // click
+
+  getData();
+
+  $('#example').DataTable( {
+    data: [[
+            ""
+           ]]
+  } );
+
+
+
+} ); // documentReady
+
+
+
 function getDataFile() {
     $.ajax({
         url: "/static/ajax/objects.txt",
@@ -27,32 +81,6 @@ function getDataFile() {
     })
 }
 
-function getData() {
-    $.ajax({
-        url: "/items",
-        success: function(data) {
-            var columns = [];
-
-            visibleColumnNames = Object.assign(data.visible)
-            console.log(visibleColumnNames)
-
-            columnNames = Object.keys(data.data[0]);
-            for (var i in columnNames) {
-                console.log(columnNames[i])
-                columns.push({
-                    data: columnNames[i],
-                    title: columnNames[i],
-                    visible: visibleColumnNames.includes(columnNames[i])
-                });
-            }
-
-            table = $('#example2').DataTable({
-                data: data.data,
-                columns: columns
-            });
-        }
-    })
-}
 
 /*  This will update table on page load
 ready() calls getData passing in a function that is called in ajax: success
