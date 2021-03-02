@@ -1,20 +1,32 @@
-function getData() {
+function filterData() {
     $.ajax({
-        url: "/itemdata",
+        url: "/filterdata",
         success: function(data) {
             var columns = [];
 
             visibleColumnNames = Object.assign(data.visible)
             //console.log(visibleColumnNames)
 
-            columnNames = Object.keys(data.data[0]);
-            console.log(columnNames)
-            for (var i in columnNames) {
-                console.log(columnNames[i])
+            columnNames = Object.keys(data.items[0]);
+            //console.log(columnNames)
+
+             /*
+             for (var i in columnNames) {
+                //console.log(columnNames[i])
                 columns.push({
                     data: columnNames[i],
                     title: columnNames[i],
                     visible: visibleColumnNames.includes(columnNames[i])
+                });
+            }
+            */
+
+            for (var i in visibleColumnNames) {
+                //console.log(columnNames[i])
+                columns.push({
+                    data: visibleColumnNames[i],
+                    title: visibleColumnNames[i],
+                    visible: true
                 });
             }
 
@@ -26,30 +38,35 @@ function getData() {
             }
 
             var table = $('#example').DataTable({
-                data: data.data,
+                data: data.items,
                 columns: columns
             });
 
         } // success
     }); // ajax
-}
+} // getData()
 
 $(document).ready( function () {
-
   //$("#reload").click(getData()); // click
+  filterData();
 
-  getData();
+  //$('#example-getting-started').multiselect();
 
   $('#example').DataTable( {
     data: [[
             ""
            ]]
   } );
-
-
-
 } ); // documentReady
 
+
+function submit2() {
+    var data = $('.mySelect2').select2('data');
+    data.forEach(item => {
+        console.log(item.id, item.text);
+     });
+     
+};
 
 
 function getDataFile() {

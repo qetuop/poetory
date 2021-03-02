@@ -6,8 +6,10 @@ class LoginForm(FlaskForm):
     poesessid = StringField('POESESSID') # POESESSID de4c695e9a693a94b563a1727233c7b7
     league = SelectField(u'League')
     verify = SubmitField('Verify')
-    characters = SubmitField('Characters')  # TODO: temp buttons until i figure out how to use links to submit data
+    #characters = SubmitField('Characters')  # TODO: temp buttons until i figure out how to use links to submit data
+    character = SelectField('Characters')
     items = SubmitField('Items')
+    items2 = SubmitField('Items2')
     tabs = StringField('Verify')
 
 class ItemForm(FlaskForm):

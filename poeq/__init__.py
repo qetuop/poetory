@@ -222,7 +222,6 @@ def getStashInfo(league):
 
     dumpToFile('stashInfo.json', tabs)
 
-
     return tabs
 
 def verify():
@@ -260,6 +259,23 @@ def getCharacters(account):
     dumpToFile('characters.json', out)
     return out
 
+# [ "bob", "Joe", etc]
+def getCharacterNames(account,league):
+    print('getCharacterNames', account, league)
+    charNames = []
+    if ( account is None or account == ""):
+        return charNames
+
+    chars = getCharacters(account)
+
+    if ( league is None or league == "" ):
+        charNames =  list(map(lambda x: x['name'], chars))
+    else:
+        leagueChars = list(filter(lambda x: (x['league']==league), chars))
+        charNames =  list(map(lambda x: x['name'], leagueChars))  # now combine this all in a one liner!
+
+    return charNames
+
 '''
 {"items":[{"verified":false,
 ...
@@ -270,7 +286,7 @@ def getCharacterInventory(charName):
     url = 'https://pathofexile.com/character-window/get-items?character=%s'%charName
     print(url)
     out = grabData(url)
-    print(out)
+
     dumpToFile('%s.json' % charName, out)
     return out
 

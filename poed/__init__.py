@@ -94,7 +94,7 @@ def findDiff(src,tgt):
     for y in src.split(" "):
         if y not in tgtSplit:
             diff.append(y)
-    print(f"\tFind Diff: src = {src}, tgt = {tgt}, diff = {diff}")
+    #print(f"\tFind Diff: src = {src}, tgt = {tgt}, diff = {diff}")
     return diff
 
 def dict_to_obj(our_dict):

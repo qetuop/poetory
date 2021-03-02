@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/prism.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/chosen.css') }}">
+
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+
+    <style>
+p    {color: red;}
+
+    </style>
+
+</head>
+
+<body>
+<form>
+    <div id="container">
+        <div id="content">
+            <select data-placeholder="Affix search use ctrl to select multiple affixes" class="chosen-select" multiple tabindex="6">
+                {% for item in data["result"] %}
+                    <optgroup label={{ item['label'] }}>
+                    {% for entry in item['entries'] %}
+                        <option><q>{{ entry['type'] }}</q> {{ entry['text'] }}</option>
+                    {% endfor %}
+                    </optgroup>
+                {% endfor%}
+            </select>
+        </div>
+    </div>
+    <button type="button" onclick=submit1()>Submit</button>
+
+    <div id="container2">
+        <div id="content2">
+            <select data-placeholder="Affix search use ctrl to select multiple affixes" class="mySelect2" name="states[]" multiple="multiple" style="width: 50%">
+                {% for item in data["result"] %}
+                    <optgroup label={{ item['label'] }}>
+                    {% for entry in item['entries'] %}
+                        <option value={{ entry['id'] }}>{{ entry['text'] }}</option>
+                    {% endfor %}
+                    </optgroup>
+                {% endfor%}
+            </select>
+        </div>
+    </div>
+    <button type="button" onclick=submit2()>Submit</button>
+
+<!--     <div id="container3">
+        <div id="content3">
+            <select data-placeholder="Affix" class="ajax" name="states[]" multiple="multiple" style="width: 50%">
+
+            </select>
+        </div>
+    </div>
+    <button type="button" onclick=submit2()>Submit</button>-->
+
+
+    <script type="text/javascript" charset="utf8" src="{{ url_for('static', filename='js/jquery-3.5.1.js') }}"></script>
+
+    <script type="text/javascript" charset="utf8" src="{{ url_for('static', filename='js/chosen.jquery.js') }}"></script>
+    <script type="text/javascript" charset="utf8" src="{{ url_for('static', filename='js/prism.js') }}"></script>
+    <script type="text/javascript" charset="utf8" src="{{ url_for('static', filename='js/init.js') }}"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <script type="text/javascript" charset="utf8" src="{{ url_for('static', filename='js/filter.js') }}"></script>
+
+
+</form>
+
+</body>
+</html>

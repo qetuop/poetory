@@ -41,13 +41,20 @@
             {{ form.league.label }}<br>
             {{ form.league() }}<br>
         </p>
+
+        <p>
+            {{ form.character.label }}<br>
+            {{ form.character() }}<br>
+        </p>
         </form>
 
-<form method="GET" action="/characters">
-        <p>{{ form.characters() }}</p>
-</form>
+
 <form method="GET" action="/items">
         <p>{{ form.items() }}</p>
+</form>
+
+<form method="GET" action="/items2">
+        <p>{{ form.items2() }}</p>
 </form>
 
         <p>
