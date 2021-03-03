@@ -1,5 +1,5 @@
-from app import app,db
-from poem import CharacterInfo
+from app import app
+#from poem import CharacterInfo
 
 
 if __name__ == "__main__":

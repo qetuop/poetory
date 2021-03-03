@@ -1,70 +1,32 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Dropdown</title>
-</head>
-<body>
-<!--<h1><a href="{{ url_for('items')}}"> Items </a></h1>
-<h1><a href="{{ url_for('characters', account=form.account) }}"> Characters </a></h1>-->
+{% extends "base.html" %}
 
+{% block header %}
+  <h1>{% block title %}Login{% endblock %}</h1>
+{% endblock %}
 
-    <h1>Sign In</h1>
+{% block content %}
+
+<!--the form tag MUST encapsule all fields that are to be sent in the request?-->
 <form method="POST" action="/verify">
-        {{ form.hidden_tag() }}
-        <p>
-            {{ form.account.label }}<br>
-            {{ form.account(size=32) }}<br>
-            {% for error in form.account.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-            {% endfor %}
-        </p>
-        <p>
-            {{ form.poesessid.label }}<br>
-            {{ form.poesessid(size=32) }}<br>
-            {% for error in form.poesessid.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-            {% endfor %}
-        </p>
+    {{ form.hidden_tag() }}
 
-            {{ form.verify() }}
+    <p>
+        {{ form.account.label }}<br>
+        {{ form.account(size=32) }}<br>
+    </p>
 
-            {% if verified == True %}
-             <span style="color: green;">[Verified]</span>
-        {% else %}
-            <span style="color: red;">[Error]</span>
-        {% endif %}
+    <p>
+        {{ form.poesessid.label }}<br>
+        {{ form.poesessid(size=32) }}<br>
+    </p>
 
+    {{ form.verify() }}
 
-
-        <p>
-            {{ form.league.label }}<br>
-            {{ form.league() }}<br>
-        </p>
-
-        <p>
-            {{ form.character.label }}<br>
-            {{ form.character() }}<br>
-        </p>
-        </form>
-
-
-<form method="GET" action="/items">
-        <p>{{ form.items() }}</p>
+    {% if verified == True %}
+        <span style="color: green;">[Verified]</span>
+    {% else %}
+        <span style="color: red;">[Error]</span>
+    {% endif %}
 </form>
 
-<form method="GET" action="/items2">
-        <p>{{ form.items2() }}</p>
-</form>
-
-        <p>
-            {{ form.tabs.label }}<br>
-            {{ form.tabs(size=32) }}<br>
-            {% for error in form.account.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-            {% endfor %}
-        </p>
-
-
-</body>
-</html>
+{% endblock %}

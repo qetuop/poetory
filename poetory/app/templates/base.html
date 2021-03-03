@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!--Text in browser tab-->
+<title>{% block title %}{% endblock %} - Poetory</title>
+
+<nav>
+  <!--<h1>Poetory</h1>-->
+    <a href="{{ url_for('index') }}" class="navbar-item">Login</a>
+    <a href="{{ url_for('items') }}" class="navbar-item">Items</a>
+</nav>
+
+<section class="content">
+  <header>
+    {% block header %}{% endblock %}
+  </header>
+  {% block content %}{% endblock %}
+</section>

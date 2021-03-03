@@ -7,17 +7,19 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/myTable.css') }}">
 
     <!-- Include Twitter Bootstrap and jQuery: -->
-<link rel="stylesheet"  type="text/css" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
-<link rel="stylesheet"  type="text/css" href="{{ url_for('static', filename='css/bootstrap-multiselect.css') }}">
+    <!--<link rel="stylesheet"  type="text/css" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">-->
+    <!--<link rel="stylesheet"  type="text/css" href="{{ url_for('static', filename='css/bootstrap-multiselect.css') }}">-->
 
-        <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
-
+    <!--Choosen2 Drop Down filter control-->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 
     <meta charset=utf-8 />
-    <title>DataTables - JS Bin</title>
+    <title>Items</title>
 </head>
 
 <body>
+
+
     <!-- <button onclick="getDataFile()">Data From File</button> -->
     <form action="{{ url_for('getdata') }}" method="post">
         <button type="submit">getData</button>
@@ -39,17 +41,6 @@
     <button type="button" onclick=submit2()>Submit</button>
 
     <!--<button onclick="getData()">filter</button>-->
-
-
-    <!-- Build your select: -->
-<!--<select id="example-getting-started" multiple="multiple">
-    <option value="cheese">Cheese</option>
-    <option value="tomatoes">Tomatoes</option>
-    <option value="mozarella">Mozzarella</option>
-    <option value="mushrooms">Mushrooms</option>
-    <option value="pepperoni">Pepperoni</option>
-    <option value="onions">Onions</option>
-</select>-->
 
 <!--
 
@@ -88,19 +79,18 @@
     <script type="text/javascript" charset="utf8" src="{{ url_for('static', filename='js/jquery.dataTables.min.js') }}"></script>
     <script type="text/javascript" charset="utf8" src="{{ url_for('static', filename='js/myTable.js') }}"></script>
 
-    <script type="text/javascript" src="{{ url_for('static', filename='js/bootstrap-multiselect.js') }}"></script>
+    <!--<script type="text/javascript" src="{{ url_for('static', filename='js/bootstrap-multiselect.js') }}"></script>-->
 
+    <!--Choosen2 Drop Down filter control-->
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <!-- Initialize the plugin: -->
-<script type="text/javascript">
-    $(document).ready(function() {
-        $('#example-getting-started').multiselect();
-    });
-</script>
-
+    <!--<script type="text/javascript">
+        $(document).ready(function() {
+            $('#example-getting-started').multiselect();
+        });
+    </script>-->
 
 
 </body>
-
 </html>

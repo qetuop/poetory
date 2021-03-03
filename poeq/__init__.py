@@ -8,9 +8,12 @@ from pathlib import Path
 
 SLEEP = 1.1
 
-league = None
+# account and sid should only need to be set once and not change, the other values (league, character) can be different
+# while the app is running --> pass them in to each function
+#league = None
 account = None
 poesessid = None
+
 cookies = None
 
 '''
@@ -59,9 +62,9 @@ https://pathofexile.com/character-window/get-items?character=StrummBrand
 
 lastRequest = 0  #
 
-def setup(l, a, p, sleep=None):
-    global league, account, poesessid, cookies
-    league = l
+#def setup(l, a, p, sleep=None):
+def setup(a, p, sleep=None):
+    global account, poesessid, cookies
     account = a
     poesessid = p
 
@@ -210,7 +213,7 @@ def getLeagueNames():
     },
 '''
 def getStashInfo(league):
-    url = 'https://pathofexile.com/character-window/get-stash-items?league=%s&tabs=1&accountName=%s' % (league, account)
+    url = 'https://pathofexile.com/character-window/get-stash-items?league=%s&accountName=%s&tabs=1' % (league, account)
     out = grabData(url)
 
     tabs = None
@@ -224,13 +227,8 @@ def getStashInfo(league):
 
     return tabs
 
-def verify():
-    out = getNumTabs('Standard')
-    return isinstance(out, int)  # TODO: fix if i change the getNumTabs RV
-
-
 def getNumTabs(league):
-    url = 'https://pathofexile.com/character-window/get-stash-items?league=%s&accountName=%s' %(league,account)
+    url = 'https://pathofexile.com/character-window/get-stash-items?league=%s&accountName=%s' % (league,account)
 
     #cookies = dict(POESESSID='de4c695e9a693a94b563a1727233c7b7')
     #cookies = dict(POESESSID='d')  # error
@@ -248,10 +246,16 @@ def getNumTabs(league):
     #return (r.status_code, r.json()) #tabs
     return tabs
 
+# TODO: any better way to do this?
+# getNumTabs will return an int value if succcessful TODO: fix if i change the getNumTabs RV
+def verify():
+    out = getNumTabs('Standard')
+    return isinstance(out, int)
+
 '''
-    [{"name": "StrummBrand", "league": "Standard", "classId": 5, "ascendancyClass": 1, "class": "Inquisitor",
-      "level": 94, "experience": 2660312216}, ... ]
-      '''
+[{"name": "<name>", "league": "Standard", "classId": 5, "ascendancyClass": 1, "class": "Inquisitor",
+  "level": 94, "experience": 2660312216}, ... ]
+'''
 def getCharacters(account):
     # can't do by league, at least don't know how
     url = ('http://pathofexile.com/character-window/get-characters?accountName=%s' %account) # requests.Response
@@ -261,7 +265,6 @@ def getCharacters(account):
 
 # [ "bob", "Joe", etc]
 def getCharacterNames(account,league):
-    print('getCharacterNames', account, league)
     charNames = []
     if ( account is None or account == ""):
         return charNames
@@ -303,7 +306,6 @@ def getStashTab(league, tabNum):
     url = 'https://pathofexile.com/character-window/get-stash-items?league=%s&accountName=%s&tabIndex=%s' \
           % (league, account, tabNum)
     out = grabData(url)
-    print(tabNum,out)
     return out
 
 def getStash(league):

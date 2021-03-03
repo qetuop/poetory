@@ -65,7 +65,7 @@ function submit2() {
     data.forEach(item => {
         console.log(item.id, item.text);
      });
-     
+
 };
 
 
