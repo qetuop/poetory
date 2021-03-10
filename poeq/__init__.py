@@ -214,6 +214,7 @@ def getLeagueNames():
 '''
 def getStashInfo(league):
     url = 'https://pathofexile.com/character-window/get-stash-items?league=%s&accountName=%s&tabs=1' % (league, account)
+    print(url)
     out = grabData(url)
 
     tabs = None

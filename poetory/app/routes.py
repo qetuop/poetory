@@ -18,10 +18,19 @@ from config import Config
 
 # GLOBALS
 statsDict = {} # dict object created directly from stats.json - used in filter dropdown
-affixList = []  # TODO: not used?
-affixDict = {}
+affixList = []  # used to match the specific item mod to the generic affix mod (+12 to maximum Life --> # to maximum Life)
+affixDict = {} #  affixDict[entry['id']] = (entry['type'], entry['text']) - used for ???
+affixTypeDict = {}   # {'<type>' : [ 'affixs'....],....} - used to match specific mod types
 reverseAffixDict = {}
 dataDict = {}
+displayItemDict = {}  # quick look up for all "items" that have a given affix
+'''
+{
+    '<affix id>': [ <simpleItem> ],
+}
+simpleItem = { 'name' : X, 'type' : Y, 'location' : Z, <affix name1> : [val1,val2,..], <affix name1> : [val1,val2,..] } this is what is passed to Datatables
+'''
+
 '''
 {
     "ritual": {
@@ -80,6 +89,7 @@ def setup():
     global affixList
     global affixDict
     global reverseAffixDict
+    global affixTypeDict
 
     print("SETUP")
 
@@ -106,17 +116,42 @@ def setup():
     path = Path.cwd() / 'data' / 'affixTupleList.csv'
     affixTupleFile = open(path, 'w')
 
+    #reverseAffixFile = open(Path.cwd() / 'data' / 'reverseAffixDict.json', 'w')
+
+    # NOTE: there is the potential for multiple affixs of the same type ex:
+    # implicit.stat_2067062068 = Projectiles Pierce # additional Targets
+    # implicit.stat_2902845638 = Projectiles Pierce # additional Targets --> odd one
+    # explicit.stat_2067062068 = ""
+    # :( there is also *** 1 *** item in standard with the explicit
+    # explicit.stat_3640956958  Projectiles Pierce 2 additional Targets --> the matching logic will match to this vs the above = >.<
+    # :_( there is also "Projectiles Pierce an additional Target"  "an" **not** a #    but there is no affix listed as that in stats.json
+
+    #
+    # this *may* be due to "updates" not sure if intended.  Old items in Standard have one of these while
+    # newer items have the other.  Don't know how to distunguish (besides if item is from standard stash vs new league)
+    # may not matter which ID i use, i'll need to only store one for the reverse lookup, the last used will overwrite the ones before it
+
     statsFile = os.path.join(Config.DATA_DIR, 'stats.json')
     with open(statsFile, 'r') as file:
         statsDict = json.load(file)
         for result in statsDict["result"]:
+            type = result['label'].lower()  # Implicit -> implicit
+            affixTypeDict[type] = []
+
             for entry in result["entries"]:
                 affixList.append(entry['text'])
+                affixTypeDict[type].append(entry['text'])
                 affixDict[entry['id']] = (entry['type'], entry['text'])
-                reverseAffixDict[(entry['type'], entry['text'])] = entry['id']
+                reverseAffixDict[(entry['type'], entry['text'])] = entry['id']  # see note above
                 affixTupleFile.write(f"\"{entry['type']}\", \"{entry['text']}\", \"{entry['id']}\"\n")
 
+
     affixTupleFile.close()
+
+    with open(Path.cwd() / 'data' / 'reverseAffixDict.csv', "w") as write_file:
+        for item in reverseAffixDict.items():
+            write_file.write(f"\"{item}\n")
+
 
     print(f"{len(affixList)} affixes found")
 
@@ -172,6 +207,54 @@ def items():
     print('ITEMS:', len(affixList))
     return render_template('items.html', data=statsDict)
 
+def processMod(item, mod, type):
+    global displayItemDict
+
+    # skip this stuff for now
+    if item['frameType'] in [4,5,6,8] or 'Flask' in item['typeLine']:  # 4=gem, 5=currency, 6=div, 8=prophecy
+        return
+
+    #print(item,mod,type)
+    simpleItem = {}
+    simpleItem['name'] = item['name']
+    simpleItem['type'] = item['type']
+    simpleItem['location'] = item['location']
+
+    # temp file to test match logic
+    matchedModsFile = open(Path.cwd() / 'data' / 'matchedMods.csv', 'w')
+
+    # datatable js i'm using expects each item to have *all* columns even if value is empty, create superset of all found mods
+    # add empty value mods to items that don't contain them.  TODO: can this be done a different way?
+    foundMods = []
+
+
+    result = process.extractOne(mod, affixTypeDict[type], score_cutoff=80, scorer=fuzz.ratio)  # token_sort_ratio
+
+    if result is None:
+        print(f'*** ERROR MATCHING: type:{type} | mod:{mod} | name:{item["name"]} | frameType:{item["frameType"]} | typeLine:{item["typeLine"]}')
+        return
+
+    genericMod = result[0]
+    valList = findDiff(mod, genericMod)  # [0] // get the value or values for this mode (ex:  # to # -->  5 to 10)
+
+    matchedModsFile.write(f"\"{mod}\", \"{genericMod}\", \"{valList}\"\n")
+
+    simpleItem[genericMod] = valList
+
+    # print(f"name = {genericMod}, value = {valList}, item = {itemName}")
+    if genericMod not in foundMods:
+        foundMods.append(genericMod)
+
+    # add
+    try:
+        affixId = reverseAffixDict[type,genericMod]
+        #print(affixId)
+        displayItemDict.setdefault(affixId, []).append(simpleItem) # append this item to the affixId list, first time create empty list
+    except:
+        print("%%% Can't add to displayItemDict",type, genericMod,item)
+
+
+
 
 def processItem(item, league, stashInfo, char=None):
     # NAME
@@ -199,6 +282,19 @@ def processItem(item, league, stashInfo, char=None):
     # TYPE
     item['type'] = typeLookup(item['frameType'])
 
+    if 'implicitMods' in item.keys():  # item['implicitMods'] is not None:
+        for mod in item['implicitMods']:
+            processMod(item, mod, 'implicit')
+    if 'explicitMods' in item.keys():  # item['explicitMods'] is not None:
+        for mod in item['explicitMods']:
+            processMod(item, mod, 'explicit')
+    if 'fracturedMods' in item.keys():
+        for mod in item['fracturedMods']:
+            processMod(item, mod, 'fractured')
+    if 'craftedMods' in item.keys():
+        for mod in item['craftedMods']:
+            processMod(item, mod, 'crafted')
+
     return item
 
 # add some extra data (location, type) modify some data (name - if empty)
@@ -206,6 +302,7 @@ def processItem(item, league, stashInfo, char=None):
 # parse a image file name :(
 def processData():
     global dataDict
+    global displayItemDict
 
     for league in dataDict.keys():
         print('LEAGUE',league)
@@ -222,13 +319,14 @@ def processData():
                 dataDict[league]['stash'][tab]['items'][i] = processItem(v, league, stashInfo)
 
     # TODO: create mapping of affix id : item .... so filterData can quickly find items....but how to linke directly to item
-    # 
+    #
 
 # query a set of stash tabs/chars based on a CONFIG/FILTER
 # this will create the pool of data to further filter upon (afixes/types/etc)
 @app.route('/getdata', methods=['GET','POST'])
 def getdata():
     global dataDict
+    global displayItemDict
 
     print(f"getdata: {request.method}")
 
@@ -255,6 +353,8 @@ def getdata():
     sourceConfig = json.loads(open('sourceConfig.json').read())
     print('sourceConfig:',sourceConfig)
 
+    # reset data
+    displayItemDict = {}
     # only one league at this time.  TODO: allow multiple league configs?
     league = list(sourceConfig.keys())[0] # TODO: how to access iterable view?
     dataDict[league] = {'characters':{}, 'stash':{}}
@@ -279,13 +379,20 @@ def getdata():
     # PROCESS Data
     processData()
 
-    print('dataDict:',dataDict)
+    #print('dataDict:',dataDict)
     with open("jsonData/dataDict.json", "w") as write_file:
         json.dump(dataDict, write_file, indent=4)
 
     #return render_template('items.html')
     return redirect(url_for('items'))
 
+
+'''
+{
+    '<affix id>': [ <simpleItem> ],
+}
+simpleItem = { 'name' : X, 'type' : Y, 'location' : Z, <affix name1> : [val1,val2,..], <affix name1> : [val1,val2,..] } this is what is passed to Datatables
+'''
 # called when items table is loaded
 @app.route('/filterdata', methods=['GET'])
 def filterdata():
@@ -293,11 +400,19 @@ def filterdata():
     global affixList
     global foo
     global dataDict
+    global displayItemDict  # simplified dict of all items contained in configured stashes/chars indexed by affix id
 
     items = []
     cnt = 0
 
-    if len(dataDict) == 0:
+    #didf = open(Path.cwd() / 'data' / 'displayItemDict.csv', 'w')
+    with open(Path.cwd() / 'data' / 'displayItemDict.json', "w") as write_file:
+        json.dump(displayItemDict, write_file, indent=4)
+
+    tmpFilterList = ["explicit.stat_3032590688", "explicit.stat_2144192055"]
+
+    #if len(dataDict) == 0:
+    if 0:
         out = {"items": items}
         out["visible"] = []
         out["visible"].insert(0, "type")
@@ -326,7 +441,7 @@ def filterdata():
     for tab in dataDict[league]['stash']:
         fullItemsList.extend((dataDict[league]['stash'][tab]['items']))
 
-    print('fullItemsList:',fullItemsList)
+    #print('fullItemsList:',fullItemsList)
 
     # TODO : temp hack
     if len(fullItemsList) == 0:
@@ -403,15 +518,15 @@ def filterdata():
     matchedModsFile.close()
 
     # add empty mods to each item for datatables column req, they all should already have 'name'....
-    cnt = 0
-    for idx, item in enumerate(items):
-        for genericMod in foundMods:
-
-            # TODO: add shortened mod name here
-            #genericMod = shortenedModName(genericMod)
-
-            if genericMod not in items[idx].keys():
-                items[idx][genericMod] = ""
+    # cnt = 0
+    # for idx, item in enumerate(items):
+    #     for genericMod in foundMods:
+    #
+    #         # TODO: add shortened mod name here
+    #         #genericMod = shortenedModName(genericMod)
+    #
+    #         if genericMod not in items[idx].keys():
+    #             items[idx][genericMod] = ""
 
     out = {"items":items}
 
