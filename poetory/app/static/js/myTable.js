@@ -7,7 +7,7 @@ function filterData() {
             visibleColumnNames = Object.assign(data.visible)
             //console.log(visibleColumnNames)
 
-            columnNames = Object.keys(data.items[0]);
+            //columnNames = Object.keys(data.items[0]);
             //console.log(columnNames)
 
              /*
@@ -26,7 +26,8 @@ function filterData() {
                 columns.push({
                     data: visibleColumnNames[i],
                     title: visibleColumnNames[i],
-                    visible: true
+                    visible: true,
+                    defaultContent: ""
                 });
             }
 
@@ -39,7 +40,7 @@ function filterData() {
 
             var table = $('#example').DataTable({
                 data: data.items,
-                columns: columns
+                columns: columns,
             });
 
         } // success
