@@ -21,12 +21,13 @@ from app.forms import LoginForm, ItemForm, CharacterForm
 from config import Config
 
 # GLOBALS
+stashInfo = {} # store resutls from getStash, used for mapping stash names and numbers
 statsDict = {} # dict object created directly from stats.json - used in filter dropdown
-affixList = []  # used to match the specific item mod to the generic affix mod (+12 to maximum Life --> # to maximum Life)
+affixList = []  # used to match the specific item mod to the generic affix mod (+12 to maximum Life --> # to maximum Life)  ----> NOT USED
 affixDict = {} #  affixDict[entry['id']] = (entry['type'], entry['text']) - used for getting type/text from id - in filterData logic
-affixTypeDict = {}   # {'<type>' : [ 'affixs'....],....} - used to match specific mod types
-reverseAffixDict = {}
-dataDict = {}
+affixTypeDict = {}   # {'<type>' : [ 'affixs'....],....} - used to match affixs for specific type (implicit vs explicit)
+reverseAffixDict = {}  # { (type, text) : id,....}  - used when evaluating stash item to find affix id --> add to displayItemDict
+dataDict = {} # character and stash data queried from POE API
 displayItemDict = {}  # quick look up for all "items" that have a given affix
 '''
 {
@@ -177,7 +178,7 @@ def setup():
             write_file.write(f"\"{item}\n")
 
 
-    print(f"{len(affixList)} affixes found")
+    print(f"{len(affixList)} {len(affixDict.keys())} affixes found")
 
 @app.route('/verify', methods=['POST'])
 def verify():
@@ -231,112 +232,63 @@ def items():
     print('ITEMS:', len(affixList))
     return render_template('items.html', data=statsDict)
 
+def processMod(simpleItem, item, mod, type):
+    global displayItemDict
+
+    result = process.extractOne(mod, affixTypeDict[type], score_cutoff=80, scorer=fuzz.ratio)  # token_sort_ratio
+
+    # this mod could not be found in stats.json, some mods are hidden this will be expected.  This is also to catch
+    # items i could not match correctly at this time
+    if result is None:
+        print(f'*** ERROR MATCHING: type:{type} | mod:{mod} | name:{item["name"]} | frameType:{item["frameType"]} | typeLine:{item["typeLine"]}')
+        simpleItem.setdefault('unmatched', []).append(mod)
+        return simpleItem
+
+    genericMod = result[0]
+    valList = findDiff(mod, genericMod)  # [0] // get the value or values for this mode (ex:  # to # -->  5 to 10)
+
+    with open(Path.cwd() / 'debug' / 'matchedModscsv', "w") as write_file:
+        write_file.write(f"\"{mod}\", \"{genericMod}\", \"{valList}\"\n")
+
+    simpleItem[genericMod] = valList
+
+    # add
+    try:
+        affixId = reverseAffixDict[type,genericMod]
+        displayItemDict.setdefault(affixId, []).append(simpleItem) # append this item to the affixId list, first time create empty list
+    except Exception as e:
+        print("%%% Can't add to displayItemDict", affixId, type, genericMod, simpleItem)
+        print(e)
+
+    return simpleItem
+
 def processMods(item):
     # skip this stuff for now
     if item['frameType'] in [4, 5, 6, 8] or 'Flask' in item['typeLine']:  # 4=gem, 5=currency, 6=div, 8=prophecy
         return
 
     simpleItem = {}
-    simpleItem['name'] = item['name']
-    simpleItem['type'] = item['type']
-    simpleItem['location'] = item['location']
+    simpleItem['name']      = item['name']
+    simpleItem['type']      = item['type']
+    simpleItem['location']  = item['location']
     simpleItem['unmatched'] = []
 
     if 'implicitMods' in item.keys():  # item['implicitMods'] is not None:
         for mod in item['implicitMods']:
-            simpleItem = processMod2(simpleItem, item, mod, 'implicit')
+            simpleItem = processMod(simpleItem, item, mod, 'implicit')
     if 'explicitMods' in item.keys():  # item['explicitMods'] is not None:
         for mod in item['explicitMods']:
-            simpleItem = processMod2(simpleItem, item, mod, 'explicit')
+            simpleItem = processMod(simpleItem, item, mod, 'explicit')
     if 'fracturedMods' in item.keys():
         for mod in item['fracturedMods']:
-            simpleItem = processMod2(simpleItem, item, mod, 'fractured')
+            simpleItem = processMod(simpleItem, item, mod, 'fractured')
     if 'craftedMods' in item.keys():
         for mod in item['craftedMods']:
-            simpleItem = processMod2(simpleItem, item, mod, 'crafted')
+            simpleItem = processMod(simpleItem, item, mod, 'crafted')
 
-def processMod2(simpleItem, item, mod, type):
-    global displayItemDict
+def processItem(item, league, char=None):
+    global stashInfo
 
-    result = process.extractOne(mod, affixTypeDict[type], score_cutoff=80, scorer=fuzz.ratio)  # token_sort_ratio
-
-    if result is None:
-        print(f'*** ERROR MATCHING: type:{type} | mod:{mod} | name:{item["name"]} | frameType:{item["frameType"]} | typeLine:{item["typeLine"]}')
-        simpleItem.setdefault('unmatched', []).append(mod)
-        return simpleItem
-    #print(f"result: {result}")
-
-    genericMod = result[0]
-    valList = findDiff(mod, genericMod)  # [0] // get the value or values for this mode (ex:  # to # -->  5 to 10)
-
-    with open(Path.cwd() / 'debug' / 'matchedModscsv', "w") as write_file:
-        write_file.write(f"\"{mod}\", \"{genericMod}\", \"{valList}\"\n")
-
-    simpleItem[genericMod] = valList
-
-    # add
-    try:
-        affixId = reverseAffixDict[type,genericMod]
-        #print(affixId)
-        displayItemDict.setdefault(affixId, []).append(simpleItem) # append this item to the affixId list, first time create empty list
-    except Exception as e:
-        print("%%% Can't add to displayItemDict", affixId, type, genericMod, simpleItem)
-        print(e)
-
-    #print(displayItemDict)
-
-    return simpleItem
-
-
-def processMod(item, mod, type):
-    global displayItemDict
-
-    # skip this stuff for now
-    if item['frameType'] in [4,5,6,8] or 'Flask' in item['typeLine']:  # 4=gem, 5=currency, 6=div, 8=prophecy
-        return
-
-    #print(item,mod,type)
-    simpleItem = {}
-    simpleItem['name'] = item['name']
-    simpleItem['type'] = item['type']
-    simpleItem['location'] = item['location']
-
-    # datatable js i'm using expects each item to have *all* columns even if value is empty, create superset of all found mods
-    # add empty value mods to items that don't contain them.  TODO: can this be done a different way?
-    foundMods = []
-
-
-    result = process.extractOne(mod, affixTypeDict[type], score_cutoff=80, scorer=fuzz.ratio)  # token_sort_ratio
-
-    if result is None:
-        print(f'*** ERROR MATCHING: type:{type} | mod:{mod} | name:{item["name"]} | frameType:{item["frameType"]} | typeLine:{item["typeLine"]}')
-        print("TODO: add to 'unmatched' field in item object")
-        return
-
-    genericMod = result[0]
-    valList = findDiff(mod, genericMod)  # [0] // get the value or values for this mode (ex:  # to # -->  5 to 10)
-
-    with open(Path.cwd() / 'debug' / 'matchedModscsv', "w") as write_file:
-        write_file.write(f"\"{mod}\", \"{genericMod}\", \"{valList}\"\n")
-
-    simpleItem[genericMod] = valList
-
-    # print(f"name = {genericMod}, value = {valList}, item = {itemName}")
-    if genericMod not in foundMods:
-        foundMods.append(genericMod)
-
-    # add
-    try:
-        affixId = reverseAffixDict[type,genericMod]
-        #print(affixId)
-        displayItemDict.setdefault(affixId, []).append(simpleItem) # append this item to the affixId list, first time create empty list
-    except:
-        print("%%% Can't add to displayItemDict",type, genericMod,item)
-
-
-
-
-def processItem(item, league, stashInfo, char=None):
     # NAME
     name = item['name']
     if name == "":  # certain items don't fill this out
@@ -364,19 +316,6 @@ def processItem(item, league, stashInfo, char=None):
 
     processMods(item)
 
-    # if 'implicitMods' in item.keys():  # item['implicitMods'] is not None:
-    #     for mod in item['implicitMods']:
-    #         processMod(item, mod, 'implicit')
-    # if 'explicitMods' in item.keys():  # item['explicitMods'] is not None:
-    #     for mod in item['explicitMods']:
-    #         processMod(item, mod, 'explicit')
-    # if 'fracturedMods' in item.keys():
-    #     for mod in item['fracturedMods']:
-    #         processMod(item, mod, 'fractured')
-    # if 'craftedMods' in item.keys():
-    #     for mod in item['craftedMods']:
-    #         processMod(item, mod, 'crafted')
-
     return item
 
 # add some extra data (location, type) modify some data (name - if empty)
@@ -385,23 +324,19 @@ def processItem(item, league, stashInfo, char=None):
 def processData():
     global dataDict
     global displayItemDict
+    global stashInfo
 
     for league in dataDict.keys():
-        print('LEAGUE',league)
-
-        # get stash info for tab names
-        stashInfo = poeq.getStashInfo(league)
-
         for char in dataDict[league]['characters']:
             for i,v in enumerate(dataDict[league]['characters'][char]['items']):
-                dataDict[league]['characters'][char]['items'][i] = processItem(v, league, stashInfo, char)
+                dataDict[league]['characters'][char]['items'][i] = processItem(v, league, char)
 
         for tab in dataDict[league]['stash']:
             for i,v in enumerate(dataDict[league]['stash'][tab]['items']):
-                dataDict[league]['stash'][tab]['items'][i] = processItem(v, league, stashInfo)
+                dataDict[league]['stash'][tab]['items'][i] = processItem(v, league)
 
-    # TODO: create mapping of affix id : item .... so filterData can quickly find items....but how to linke directly to item
-    #
+    with open("debug/dataDict.json", "w") as write_file:
+        json.dump(dataDict, write_file, indent=4)
 
 # query a set of stash tabs/chars based on a CONFIG/FILTER
 # this will create the pool of data to further filter upon (afixes/types/etc)
@@ -409,6 +344,7 @@ def processData():
 def getdata():
     global dataDict
     global displayItemDict
+    global stashInfo
 
     print(f"getdata: {request.method}")
 
@@ -430,7 +366,6 @@ def getdata():
         }
     }
     '''
-    itemList = []
 
     sourceConfig = json.loads(open('sourceConfig.json').read())
     print('sourceConfig:',sourceConfig)
@@ -441,29 +376,27 @@ def getdata():
     league = list(sourceConfig.keys())[0] # TODO: how to access iterable view?
     dataDict[league] = {'characters':{}, 'stash':{}}
 
+    # get stash info for tab names
+    stashInfo = poeq.getStashInfo(league)
+
     # TODO: TEMP HACK to not do query every time
-    dataDict = json.loads(open('debug/dataDict.json').read())
+    if (1):
+        dataDict = json.loads(open('debug/dataDict.json').read())
+    else:
+        for character in sourceConfig[league]['characters']:
+            inventory = poeq.getCharacterInventory(character)
+            #print('inventory:',inventory)
+            itemList.extend(inventory['items'])
+            dataDict[league]['characters'][character] = inventory
 
-    # TODO: TEMP uncomment when need live data
-    '''
-    for character in sourceConfig['ritual']['characters']:
-        inventory = poeq.getCharacterInventory(character)
-        print('inventory:',inventory)
-        itemList.extend(inventory['items'])
-        dataDict['ritual']['characters'][character] = inventory
+        for stashNum in sourceConfig[league]['stash']:
+            tab = poeq.getStashTab(league, stashNum)
+            #print('tab:',tab)
+            dataDict[league]['stash'][stashNum] = tab
 
-    for stashNum in sourceConfig['ritual']['stash']:
-        tab = poeq.getStashTab(league, stashNum)
-        print('tab:',tab)
-        dataDict['ritual']['stash'][stashNum] = tab
-    '''
 
     # PROCESS Data
     processData()
-
-    #print('dataDict:',dataDict)
-    with open("debug/dataDict.json", "w") as write_file:
-        json.dump(dataDict, write_file, indent=4)
 
     #return render_template('items.html')
     return redirect(url_for('items'))
@@ -484,8 +417,8 @@ simpleItem = { 'name' : X, 'type' : Y, 'location' : Z, <affix name1> : [val1,val
 OUTPUT:
 tableData
 {
-    "items" : []
-    "visible" : []
+    "items" : []  # simpleItems
+    "visible" : []  # col names - generic affixs and name/location/type/etc
 }
 '''
 # called when items table is loaded
@@ -513,26 +446,22 @@ def filterdata():
     # find any item with an affix id contained in the filter list and add to table data
     for affixId in affixIdFilterList:
         (affixType, affixText) = affixDict[affixId]
+
+        simpleItemList = []
         try:
             simpleItemList = displayItemDict[affixId]
+        except KeyError:
+            pass # likely means no owned items with this affix, not a problem
 
-            #print(f"{affixText}:{len(simpleItemList)}")
+        for simpleItem in simpleItemList:
+            if simpleItem['location'] in matchedItemsSet:
+                continue
+            else:
+                tableData["items"].append(simpleItem)
+                matchedItemsSet.add(simpleItem['location'])
 
-            for simpleItem in simpleItemList:
-                if simpleItem['location'] in matchedItemsSet:
-                    #print(f"{simpleItem['name']} already in list, skipping")
-                    continue
-                else:
-                    tableData["items"].append(simpleItem)
-                    #print(f"{simpleItem['name']} added to list")
-                    #print(matchedItemsSet)
-                    matchedItemsSet.add(simpleItem['location'])
-
-            # this column should be visible
-            tableData["visible"].append(affixText)
-
-        except:
-            print(f"@@@ Could not find affixId: {affixId}|{affixType}|{affixText} in displayItemDict.  THis may not be a problem if no items are owned" )
+        # this column should be visible
+        tableData["visible"].append(affixText)
 
     # TODO: extra data to alawys show for now
     tableData["visible"].insert(0, "type")
@@ -548,171 +477,3 @@ def filterdata():
 
     # a dict should be ok, recent versions of flask will call jsonify under the hood.
     return tableData
-
-
-
-
-# called when items table is loaded
-@app.route('/filterdataOLD', methods=['GET'])
-def filterdataOLD():
-    print(f"filterdata: {request.method}")
-    global affixList
-    global foo
-    global dataDict
-    global displayItemDict  # simplified dict of all items contained in configured stashes/chars indexed by affix id
-
-    items = []
-    cnt = 0
-
-    #didf = open(Path.cwd() / 'data' / 'displayItemDict.csv', 'w')
-    with open(Path.cwd() / 'data' / 'displayItemDict.json', "w") as write_file:
-        json.dump(displayItemDict, write_file, indent=4)
-
-    tmpFilterList = ["explicit.stat_3032590688", "explicit.stat_2144192055"]
-
-    #if len(dataDict) == 0:
-    if 0:
-        out = {"items": items}
-        out["visible"] = []
-        out["visible"].insert(0, "type")
-        out["visible"].insert(0, "name")
-        out["visible"].insert(0, "location")
-        return out
-
-    # get stash info for tab names
-    league = list(dataDict.keys())[0]  # TODO: how to access iterable view?
-    stashInfo = poeq.getStashInfo(league)
-    print('filter data, league=',league)
-
-    # temp file to test match logic
-    path = Path.cwd() / 'data' / 'matchedMods.csv'
-    matchedModsFile = open(path, 'w')
-
-
-    # datatable js i'm using expects each item to have *all* columns even if value is empty, create superset of all found mods
-    # add empty value mods to items that don't contain them.  TODO: can this be done a different way?
-    foundMods = []
-
-    # Add all items (char inv and stash) to one single list of items
-    fullItemsList = []
-    for char in dataDict[league]['characters']:
-        fullItemsList.extend((dataDict[league]['characters'][char]['items']))
-    for tab in dataDict[league]['stash']:
-        fullItemsList.extend((dataDict[league]['stash'][tab]['items']))
-
-    #print('fullItemsList:',fullItemsList)
-
-    # TODO : temp hack
-    if len(fullItemsList) == 0:
-        return {"items": items}
-
-    for item in fullItemsList:
-        # #print(f"ITEM:\n {item}")
-        #
-        # #if item['frameType'] == 5 or 'Flask' in item['typeLine']:  # 5=currency
-        # #    continue
-        #
-        # tmp = {}
-        #
-        # # NAME
-        # tmp["name"] = item['name']
-        # if tmp["name"] == "":  # certain items don't fill this out
-        #     tmp["name"] = item['typeLine']
-        #
-        # # LOCATION
-        # '''
-        # tmp['x']+1 : tmp[y]+1
-        # inventoryId: Stash1...StashN (1 indexed, split and subtract 1) ---> index into stashInfo -->  # or name?
-        # or 'MainInventory, 'Ring', Ring2, <slot> for character -->
-        # '''
-        # location = item['inventoryId']
-        #
-        # if 'Stash' in location:
-        #     stashNum = int(location.replace('Stash', '')) - 1
-        #     location = stashInfo[stashNum]['n']
-        # else:
-        #     location = 'TODO' # character
-        #
-        # location += " x:%d y:%d"%(int(item['x'])+1, int(item['y'])+1)
-        # tmp['location'] = location
-        #
-        # # TYPE
-        # tmp['type'] = typeLookup(item['frameType'])
-
-        modList = []
-
-        # TODO: change to tuple (name, type) # ("# to Strength", "implicit")
-        if 'implicitMods' in item.keys(): #item['implicitMods'] is not None:
-            modList += item['implicitMods']
-        if 'explicitMods' in item.keys(): #item['explicitMods'] is not None:
-            modList += item['explicitMods']
-        if 'fracturedMods' in item.keys():
-            modList += item['fracturedMods']
-        if 'craftedMods' in item.keys():
-            modList += item['craftedMods']
-
-        for mod in modList:
-            result = process.extractOne(mod, affixList, score_cutoff=80, scorer=fuzz.ratio) #token_sort_ratio
-
-            if result is None:
-                print('***ERROR MATCHING:', mod)
-                continue
-
-            genericMod = result[0]
-            valList = findDiff(mod, genericMod)#[0] // get the value or values for this mode (ex:  # to # -->  5 to 10)
-
-            matchedModsFile.write(f"\"{mod}\", \"{genericMod}\", \"{valList}\"\n")
-
-            tmp[genericMod] = valList
-            # name = Adds # to # Physical Damage, value = Adds 3 to 6 Physical Damage to Attacks
-            itemName = tmp["name"]
-            #print(f"name = {genericMod}, value = {valList}, item = {itemName}")
-            if genericMod not in foundMods:
-                foundMods.append(genericMod)
-
-        items.append(tmp)
-        cnt += 1
-        #if cnt  >= 3: break # TODO: dev hack to cut down on data
-
-    matchedModsFile.close()
-
-    # add empty mods to each item for datatables column req, they all should already have 'name'....
-    # cnt = 0
-    # for idx, item in enumerate(items):
-    #     for genericMod in foundMods:
-    #
-    #         # TODO: add shortened mod name here
-    #         #genericMod = shortenedModName(genericMod)
-    #
-    #         if genericMod not in items[idx].keys():
-    #             items[idx][genericMod] = ""
-
-    out = {"items":items}
-
-    # set visible columns
-    #out["visible"] = ["name", "# to Strength"]
-    out["visible"] = foundMods
-    out["visible"].insert(0, "type")
-    out["visible"].insert(0, "name")
-    out["visible"].insert(0, "location")
-
-    poeq.dumpToFile('table_data.json',out)
-
-    # a dict should be ok, recent versions of flask will call jsonify under the hood.
-    return out
-#
-#
-# @app.route('/characters', methods=['GET', 'POST'])
-# def characters():
-#     print(request.method)
-#     config = json.loads(open('config.json').read())
-#
-#     account = config['account']
-#
-#     #print('characters: ' + account) # account = <input id="account" name="account" type="text" value="qetuop"> only *after* submit pressed
-#
-#     updateCharacters(account)
-#
-#     form = CharacterForm()
-#     entries = CharacterInfo.query.all()
-#     return render_template('characters.html', form=form, entries=entries)

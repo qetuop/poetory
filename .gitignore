@@ -141,6 +141,7 @@ poetory/jsonData
 json_bak/*
 bak/
 data/
+debug/
 *.bak
 test/
 poetory/affixFuzz.py

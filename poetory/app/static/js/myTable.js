@@ -1,3 +1,7 @@
+function populateTable(data) {
+
+}
+
 function filterData() {
     $.ajax({
         url: "/filterdata",
@@ -40,7 +44,7 @@ function filterData() {
 
             var table = $('#example').DataTable({
                 data: data.items,
-                columns: columns,
+                columns: columns
             });
 
         } // success
@@ -51,6 +55,7 @@ $(document).ready( function () {
   //$("#reload").click(getData()); // click
   filterData();
 
+    $('.mySelect2').select2();
   //$('#example-getting-started').multiselect();
 
   $('#example').DataTable( {
