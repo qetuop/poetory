@@ -422,7 +422,7 @@ tableData
 }
 '''
 # called when items table is loaded
-@app.route('/filterdata', methods=['GET'])
+@app.route('/filterdata', methods=['GET', 'POST'])
 def filterdata():
     print(f"filterdata: {request.method}")
     global affixList
@@ -437,6 +437,10 @@ def filterdata():
     # TODO: this should come from the filter dropdown/request data
     affixIdFilterList = ["explicit.stat_3032590688", "explicit.stat_2144192055", "explicit.stat_3299347043"]  # "Adds # to # Physical Damage to Attacks", "# to Evasion Rating"
 
+    if request.method == 'POST':
+        affixIdFilterList = request.form.getlist('affixIds[]')
+
+    print('affixIdFilterList:',affixIdFilterList)
     # data passed to the table - which cols are visible and the data to display
     tableData = {"items":[], "visible":[]}
 
