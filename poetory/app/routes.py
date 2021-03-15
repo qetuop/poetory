@@ -22,7 +22,11 @@ from config import Config
 
 # GLOBALS
 stashInfo = {} # store resutls from getStash, used for mapping stash names and numbers
+
 statsDict = {} # dict object created directly from stats.json - used in filter dropdown
+baseItemDict = {} # https://raw.githubusercontent.com/brather1ng/RePoE/master/RePoE/data/base_items.json
+itemLookupDict = {}  # using the above  "<name>" : { "item_class": "<class", "tags": ["tag1", "tag2",...]   # note can be multiple types, ex: 2 stong ring one for each, don't care at this time
+
 affixList = []  # used to match the specific item mod to the generic affix mod (+12 to maximum Life --> # to maximum Life)  ----> NOT USED
 affixDict = {} #  affixDict[entry['id']] = (entry['type'], entry['text']) - used for getting type/text from id - in filterData logic
 affixTypeDict = {}   # {'<type>' : [ 'affixs'....],....} - used to match affixs for specific type (implicit vs explicit)
@@ -95,6 +99,8 @@ def setup():
     global affixDict
     global reverseAffixDict
     global affixTypeDict
+    global baseItemDict
+    global itemLookupDict
 
     print("SETUP")
 
@@ -180,6 +186,20 @@ def setup():
 
     print(f"{len(affixList)} {len(affixDict.keys())} affixes found")
 
+    itemLookupDict = {}
+    baseItemFile = os.path.join(Config.DATA_DIR, 'base_items.json')
+    with open(baseItemFile, 'r') as file:
+        baseItemDict = json.load(file)
+        #print(baseItemDict)
+        for item in baseItemDict:
+            #print(item)
+            print(baseItemDict[item]['name'], ':', baseItemDict[item]['item_class'])
+            tmpItem = baseItemDict[item]
+            itemLookupDict[tmpItem['name']] = {'item_class':tmpItem['item_class'], 'tags':tmpItem['tags']}
+
+    with open("debug/itemLookupDict.json", "w") as write_file:
+        json.dump(itemLookupDict, write_file, indent=4)
+
 @app.route('/verify', methods=['POST'])
 def verify():
     print(f"verify: {request.method}")
@@ -241,7 +261,7 @@ def processMod(simpleItem, item, mod, type):
     # items i could not match correctly at this time
     if result is None:
         print(f'*** ERROR MATCHING: type:{type} | mod:{mod} | name:{item["name"]} | frameType:{item["frameType"]} | typeLine:{item["typeLine"]}')
-        simpleItem.setdefault('unmatched', []).append(mod)
+        simpleItem['unmatched'].append(mod)
         return simpleItem
 
     genericMod = result[0]
@@ -268,10 +288,21 @@ def processMods(item):
         return
 
     simpleItem = {}
-    simpleItem['name']      = item['name']
-    simpleItem['type']      = item['type']
-    simpleItem['location']  = item['location']
-    simpleItem['unmatched'] = []
+    simpleItem['name']       = item['name']
+    simpleItem['type']       = item['type']
+    simpleItem['location']   = item['location']
+    simpleItem['unmatched']  = []
+    baseItemType = None
+    try:
+        baseItemType = itemLookupDict[item['typeLine']]
+        simpleItem['item_class'] = baseItemType['item_class']
+        simpleItem['tags'] = baseItemType['tags']
+    except:
+        print(f'***typeLine:{item["typeLine"]} not found')
+        simpleItem['item_class'] = 'UNKNOWN'
+        simpleItem['tags'] = []
+
+
 
     if 'implicitMods' in item.keys():  # item['implicitMods'] is not None:
         for mod in item['implicitMods']:
@@ -288,6 +319,9 @@ def processMods(item):
 
 def processItem(item, league, char=None):
     global stashInfo
+    #print('name:    ',item['name'])
+    #print('typeLine:', item['typeLine'])
+    #print('icon:    ', item['icon'])
 
     # NAME
     name = item['name']
@@ -349,9 +383,11 @@ def getdata():
     print(f"getdata: {request.method}")
 
     # TODO: temp until a gui input is created
+    '''
     sourceConfig = dict(ritual = {'characters' : ['RitToxRayne', 'RitErekD'], 'stash' : [2,3]})
     with open("sourceConfig.json", "w") as write_file:
         json.dump(sourceConfig, write_file, indent=4)
+    '''
     '''
     {
         "ritual": {
@@ -472,6 +508,8 @@ def filterdata():
     tableData["visible"].insert(0, "name")
     tableData["visible"].insert(0, "location")
     tableData["visible"].append("unmatched")
+    tableData["visible"].append("item_class")
+    tableData["visible"].append("tags")
 
     # TODO: show cols based on a configurable input --> displayConfig.json - "Life" : ["type", "name", "location", "+# total maximum Life"
     # should it use the affix id?  should it also include the type?

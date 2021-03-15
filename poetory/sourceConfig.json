@@ -1,12 +1,9 @@
 {
     "ritual": {
         "characters": [
-            "RitToxRayne",
-            "RitErekD"
+            "RitToxRayne"
         ],
         "stash": [
-            2,
-            3
         ]
     }
 }
