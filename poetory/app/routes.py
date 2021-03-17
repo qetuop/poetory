@@ -59,9 +59,6 @@ simpleItem = { 'name' : X, 'type' : Y, 'location' : Z, <affix name1> : [val1,val
 }
 '''
 
-foo = True
-
-
 # src = Adds 3 to 6 Physical Damage to Attacks, tgt = Adds # to # Physical Damage
 # diff = [3,6]....at least it should
 def findDiff(src,tgt):
@@ -286,16 +283,17 @@ def processMod(simpleItem, item, mod, type):
     genericMod = result[0]
     valList = findDiff(mod, genericMod)  # [0] // get the value or values for this mode (ex:  # to # -->  5 to 10)
 
-    with open(Path.cwd() / 'debug' / 'matchedMods.csv', "a+") as write_file:
-        write_file.write(f"\"{item['name']}\", \"{mod}\", \"{genericMod}\", \"{valList}\"\n")
+
 
     simpleItem[genericMod] = valList
 
     try:
         affixId = reverseAffixDict[type,genericMod]
         affixItemDict.setdefault(affixId, []).append(simpleItem) # append this item to the affixId list, first time create empty list
-
         print(f'Matched: {genericMod} | {valList} | {affixId}')
+
+        with open(Path.cwd() / 'debug' / 'matchedMods.csv', "a+") as write_file:
+            write_file.write(f"\"{simpleItem['name']}\", \"{affixId}\", \"{mod}\", \"{genericMod}\", \"{valList}\"\n")
     except Exception as e:
         print("%%% Can't add to affixItemDict", affixId, type, genericMod, simpleItem)
         print(e)
@@ -369,8 +367,6 @@ def processItem(item, league, char=None):
         for mod in item['craftedMods']:
             simpleItem = processMod(simpleItem, item, mod, 'crafted')
 
-    # TODO: if i don't modify item don't need to return/store it back to dataDict
-    #return item
 
 # add some extra data (location, type) modify some data (name - if empty)
 def processData():
@@ -520,12 +516,15 @@ def filterdata():
     for affixId in affixIdFilterList:
         (affixType, affixText) = affixDict[affixId]
 
+        #print("filterData, affixId:", affixId, affixText)
+
         simpleItemList = []
         try:
             simpleItemList = affixItemDict[affixId]
         except KeyError:
             pass # likely means no owned items with this affix, not a problem
 
+        print(simpleItemList)
         # don't need to add item for one mod if already added for another
         for simpleItem in simpleItemList:
             if simpleItem['uniqueId'] in matchedItemsSet:
