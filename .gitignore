@@ -142,6 +142,7 @@ json_bak/*
 bak/
 data/
 debug/
+mock/
 *.bak
 test/
 poetory/affixFuzz.py

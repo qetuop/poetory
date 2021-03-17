@@ -3,6 +3,7 @@ import os
 
 import os.path
 from os import path
+import shutil
 
 import sys
 from pathlib import Path
@@ -12,6 +13,8 @@ import json
 from flask import render_template, request, flash, redirect, url_for
 from rapidfuzz import fuzz
 from rapidfuzz import process
+
+import uuid
 
 from app import app
 import poeq
@@ -30,9 +33,10 @@ itemLookupDict = {}  # using the above  "<name>" : { "item_class": "<class", "ta
 affixList = []  # used to match the specific item mod to the generic affix mod (+12 to maximum Life --> # to maximum Life)  ----> NOT USED
 affixDict = {} #  affixDict[entry['id']] = (entry['type'], entry['text']) - used for getting type/text from id - in filterData logic
 affixTypeDict = {}   # {'<type>' : [ 'affixs'....],....} - used to match affixs for specific type (implicit vs explicit)
-reverseAffixDict = {}  # { (type, text) : id,....}  - used when evaluating stash item to find affix id --> add to displayItemDict
+reverseAffixDict = {}  # { (type, text) : id,....}  - used when evaluating stash item to find affix id --> add to affixItemDict
+
 dataDict = {} # character and stash data queried from POE API
-displayItemDict = {}  # quick look up for all "items" that have a given affix
+affixItemDict = {}  # quick look up for all "items" that have a given affix
 '''
 {
     '<affix id>': [ <simpleItem> ],
@@ -103,6 +107,20 @@ def setup():
     global itemLookupDict
 
     print("SETUP")
+
+    # location
+    location = "./"
+    # directory
+    dir = "debug"
+    # path
+    path = os.path.join(location, dir)
+    # removing directory
+    try:
+        shutil.rmtree(path)
+    except:
+        pass # does not exist
+
+    os.mkdir('debug')
 
     '''
     result = 9 entries
@@ -193,7 +211,7 @@ def setup():
         #print(baseItemDict)
         for item in baseItemDict:
             #print(item)
-            print(baseItemDict[item]['name'], ':', baseItemDict[item]['item_class'])
+            #print(baseItemDict[item]['name'], ':', baseItemDict[item]['item_class'])
             tmpItem = baseItemDict[item]
             itemLookupDict[tmpItem['name']] = {'item_class':tmpItem['item_class'], 'tags':tmpItem['tags']}
 
@@ -253,7 +271,7 @@ def items():
     return render_template('items.html', data=statsDict)
 
 def processMod(simpleItem, item, mod, type):
-    global displayItemDict
+    global affixItemDict
 
     result = process.extractOne(mod, affixTypeDict[type], score_cutoff=80, scorer=fuzz.ratio)  # token_sort_ratio
 
@@ -264,69 +282,49 @@ def processMod(simpleItem, item, mod, type):
         simpleItem['unmatched'].append(mod)
         return simpleItem
 
+
     genericMod = result[0]
     valList = findDiff(mod, genericMod)  # [0] // get the value or values for this mode (ex:  # to # -->  5 to 10)
 
-    with open(Path.cwd() / 'debug' / 'matchedModscsv', "w") as write_file:
-        write_file.write(f"\"{mod}\", \"{genericMod}\", \"{valList}\"\n")
+    with open(Path.cwd() / 'debug' / 'matchedMods.csv', "a+") as write_file:
+        write_file.write(f"\"{item['name']}\", \"{mod}\", \"{genericMod}\", \"{valList}\"\n")
 
     simpleItem[genericMod] = valList
 
-    # add
     try:
         affixId = reverseAffixDict[type,genericMod]
-        displayItemDict.setdefault(affixId, []).append(simpleItem) # append this item to the affixId list, first time create empty list
+        affixItemDict.setdefault(affixId, []).append(simpleItem) # append this item to the affixId list, first time create empty list
+
+        print(f'Matched: {genericMod} | {valList} | {affixId}')
     except Exception as e:
-        print("%%% Can't add to displayItemDict", affixId, type, genericMod, simpleItem)
+        print("%%% Can't add to affixItemDict", affixId, type, genericMod, simpleItem)
         print(e)
 
     return simpleItem
 
-def processMods(item):
+##
+def processItem(item, league, char=None):
+    global stashInfo
+    if item is None:
+        print("WTF")
+        return
+
+    print(f'processItem(): name={item["name"]}')
+
     # skip this stuff for now
     if item['frameType'] in [4, 5, 6, 8] or 'Flask' in item['typeLine']:  # 4=gem, 5=currency, 6=div, 8=prophecy
         return
 
-    simpleItem = {}
-    simpleItem['name']       = item['name']
-    simpleItem['type']       = item['type']
-    simpleItem['location']   = item['location']
-    simpleItem['unmatched']  = []
-    baseItemType = None
-    try:
-        baseItemType = itemLookupDict[item['typeLine']]
-        simpleItem['item_class'] = baseItemType['item_class']
-        simpleItem['tags'] = baseItemType['tags']
-    except:
-        print(f'***typeLine:{item["typeLine"]} not found')
-        simpleItem['item_class'] = 'UNKNOWN'
-        simpleItem['tags'] = []
+    # create a SimpleItem that has only data displayed on table in a simple format
+    simpleItem = {'unmatched': []}
 
-
-
-    if 'implicitMods' in item.keys():  # item['implicitMods'] is not None:
-        for mod in item['implicitMods']:
-            simpleItem = processMod(simpleItem, item, mod, 'implicit')
-    if 'explicitMods' in item.keys():  # item['explicitMods'] is not None:
-        for mod in item['explicitMods']:
-            simpleItem = processMod(simpleItem, item, mod, 'explicit')
-    if 'fracturedMods' in item.keys():
-        for mod in item['fracturedMods']:
-            simpleItem = processMod(simpleItem, item, mod, 'fractured')
-    if 'craftedMods' in item.keys():
-        for mod in item['craftedMods']:
-            simpleItem = processMod(simpleItem, item, mod, 'crafted')
-
-def processItem(item, league, char=None):
-    global stashInfo
-    #print('name:    ',item['name'])
-    #print('typeLine:', item['typeLine'])
-    #print('icon:    ', item['icon'])
+    simpleItem['uniqueId'] = str(uuid.uuid4())  # use string, json cant searlize uuid
 
     # NAME
-    name = item['name']
-    if name == "":  # certain items don't fill this out
-        item['name'] = item['typeLine']
+    if item['name'] == "":  # certain items don't fill this out
+        simpleItem['name'] = item['typeLine']
+    else:
+        simpleItem['name'] = item['name']
 
     # LOCATION
     '''
@@ -343,41 +341,61 @@ def processItem(item, league, char=None):
         location = char  # character
 
     location += " x:%d y:%d" % (int(item['x']) + 1, int(item['y']) + 1)
-    item['location'] = location
+    simpleItem['location'] = location
 
-    # TYPE
-    item['type'] = typeLookup(item['frameType'])
+    # TODO: this needs more work, not all types are matching up correctly, may not aslo be useful -->
+    # do i want "One Hand Axe"? eventually need finer granulatiry --> tags "one hand" "axe"
+    baseItemType = None
+    try:
+        baseItemType = itemLookupDict[item['typeLine']]
+        simpleItem['type'] = baseItemType['item_class']
+        simpleItem['tags'] = baseItemType['tags']
+    except:
+        print(f'***typeLine:{item["typeLine"]} not found')
+        simpleItem['type'] = 'UNKNOWN'
+        simpleItem['tags'] = []
 
-    processMods(item)
+    # expand this simpleItem's mod list
+    if 'implicitMods' in item.keys():  # item['implicitMods'] is not None:
+        for mod in item['implicitMods']:
+            simpleItem = processMod(simpleItem, item, mod, 'implicit')
+    if 'explicitMods' in item.keys():  # item['explicitMods'] is not None:
+        for mod in item['explicitMods']:
+            simpleItem = processMod(simpleItem, item, mod, 'explicit')
+    if 'fracturedMods' in item.keys():
+        for mod in item['fracturedMods']:
+            simpleItem = processMod(simpleItem, item, mod, 'fractured')
+    if 'craftedMods' in item.keys():
+        for mod in item['craftedMods']:
+            simpleItem = processMod(simpleItem, item, mod, 'crafted')
 
-    return item
+    # TODO: if i don't modify item don't need to return/store it back to dataDict
+    #return item
 
 # add some extra data (location, type) modify some data (name - if empty)
-# TODO: type is not working at this time - need to figure out how to get "ring" or "one handed weapon", may have to
-# parse a image file name :(
 def processData():
     global dataDict
-    global displayItemDict
-    global stashInfo
+    #global affixItemDict
+    #global stashInfo
 
     for league in dataDict.keys():
         for char in dataDict[league]['characters']:
             for i,v in enumerate(dataDict[league]['characters'][char]['items']):
-                dataDict[league]['characters'][char]['items'][i] = processItem(v, league, char)
+                #dataDict[league]['characters'][char]['items'][i] = processItem(v, league, char)
+                print(i,v)
+                processItem(v, league, char)
 
         for tab in dataDict[league]['stash']:
             for i,v in enumerate(dataDict[league]['stash'][tab]['items']):
-                dataDict[league]['stash'][tab]['items'][i] = processItem(v, league)
-
-    with open("debug/dataDict.json", "w") as write_file:
-        json.dump(dataDict, write_file, indent=4)
+                #dataDict[league]['stash'][tab]['items'][i] = processItem(v, league)
+                processItem(v, league)
 
 # query a set of stash tabs/chars based on a CONFIG/FILTER
 # this will create the pool of data to further filter upon (afixes/types/etc)
 @app.route('/getdata', methods=['GET','POST'])
-def getdata():
+def getData():
     global dataDict
-    global displayItemDict
+    global affixItemDict
     global stashInfo
 
     print(f"getdata: {request.method}")
@@ -407,7 +425,7 @@ def getdata():
     print('sourceConfig:',sourceConfig)
 
     # reset data
-    displayItemDict = {}
+    affixItemDict = {}
     # only one league at this time.  TODO: allow multiple league configs?
     league = list(sourceConfig.keys())[0] # TODO: how to access iterable view?
     dataDict[league] = {'characters':{}, 'stash':{}}
@@ -417,12 +435,12 @@ def getdata():
 
     # TODO: TEMP HACK to not do query every time
     if (1):
-        dataDict = json.loads(open('debug/dataDict.json').read())
+        dataDict = json.loads(open('mock/dataDict.json').read())
     else:
         for character in sourceConfig[league]['characters']:
             inventory = poeq.getCharacterInventory(character)
             #print('inventory:',inventory)
-            itemList.extend(inventory['items'])
+            #itemList.extend(inventory['items'])
             dataDict[league]['characters'][character] = inventory
 
         for stashNum in sourceConfig[league]['stash']:
@@ -430,19 +448,30 @@ def getdata():
             #print('tab:',tab)
             dataDict[league]['stash'][stashNum] = tab
 
+        with open("mock/dataDict.json", "w") as write_file:
+            json.dump(dataDict, write_file, indent=4)
+
 
     # PROCESS Data
     processData()
 
     #return render_template('items.html')
-    return redirect(url_for('items'))
+    #return redirect(url_for('items'))
+    tableData = {"items": [], "visible": []}
+    tableData["visible"].insert(0, "type")
+    tableData["visible"].insert(0, "name")
+    tableData["visible"].insert(0, "location")
+    tableData["visible"].append("unmatched")
+    tableData["visible"].append("tags")
+    return tableData
+    #return redirect(url_for('filterdata'))
 
 
 '''
 INPUT:
-displayItemDict
+affixItemDict
 {
-    '<affix id>': [ <simpleItem> ],
+    '<affix id>': [ <simpleItem>, .... ],
 }
 simpleItem = { 'name' : X, 'type' : Y, 'location' : Z, <affix name1> : [val1,val2,..], <affix name1> : [val1,val2,..] } this is what is passed to Datatables
 
@@ -464,14 +493,15 @@ def filterdata():
     global affixList
     global foo
     global dataDict
-    global displayItemDict  # simplified dict of all items contained in configured stashes/chars indexed by affix id
+    global affixItemDict  # simplified dict of all items contained in configured stashes/chars indexed by affix id
 
     # TODO: tmp - list of all items processed
-    with open(Path.cwd() / 'debug' / 'displayItemDict.json', "w") as write_file:
-        json.dump(displayItemDict, write_file, indent=4)
+    with open(Path.cwd() / 'debug' / 'affixItemDict.json', "w") as write_file:
+        json.dump(affixItemDict, write_file, indent=4)
 
     # TODO: this should come from the filter dropdown/request data
-    affixIdFilterList = ["explicit.stat_3032590688", "explicit.stat_2144192055", "explicit.stat_3299347043"]  # "Adds # to # Physical Damage to Attacks", "# to Evasion Rating"
+    affixIdFilterList = []
+    #affixIdFilterList = ["explicit.stat_3032590688", "explicit.stat_2144192055", "explicit.stat_3299347043"]  # "Adds # to # Physical Damage to Attacks", "# to Evasion Rating"
 
     if request.method == 'POST':
         affixIdFilterList = request.form.getlist('affixIds[]')
@@ -483,22 +513,26 @@ def filterdata():
     # don't need to display the same item multiple times for matched affixs - this will keep a list of location - should be unique...
     matchedItemsSet = set()
 
+    if len(affixIdFilterList) == 0:
+        affixIdFilterList =  list(affixItemDict.keys())
+
     # find any item with an affix id contained in the filter list and add to table data
     for affixId in affixIdFilterList:
         (affixType, affixText) = affixDict[affixId]
 
         simpleItemList = []
         try:
-            simpleItemList = displayItemDict[affixId]
+            simpleItemList = affixItemDict[affixId]
         except KeyError:
             pass # likely means no owned items with this affix, not a problem
 
+        # don't need to add item for one mod if already added for another
         for simpleItem in simpleItemList:
-            if simpleItem['location'] in matchedItemsSet:
+            if simpleItem['uniqueId'] in matchedItemsSet:
                 continue
             else:
                 tableData["items"].append(simpleItem)
-                matchedItemsSet.add(simpleItem['location'])
+                matchedItemsSet.add(simpleItem['uniqueId'])
 
         # this column should be visible
         tableData["visible"].append(affixText)
@@ -508,7 +542,6 @@ def filterdata():
     tableData["visible"].insert(0, "name")
     tableData["visible"].insert(0, "location")
     tableData["visible"].append("unmatched")
-    tableData["visible"].append("item_class")
     tableData["visible"].append("tags")
 
     # TODO: show cols based on a configurable input --> displayConfig.json - "Life" : ["type", "name", "location", "+# total maximum Life"

@@ -32,6 +32,13 @@ function filterData() {
         url: "/filterdata",
         success: populateTable
     }); // ajax
+} // filterData()
+
+function getData() {
+    $.ajax({
+        url: "/getdata",
+        success: filterData
+    }); // ajax
 } // getData()
 
 $(document).ready( function () {
@@ -49,7 +56,7 @@ $(document).ready( function () {
 } ); // documentReady
 
 
-function submit2() {
+function submit() {
     var affixes = $('.mySelect2').select2('data');
     ids = []
     affixes.forEach(item => {

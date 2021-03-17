@@ -20,10 +20,8 @@
 <body>
 
 
-    <!-- <button onclick="getDataFile()">Data From File</button> -->
-    <form action="{{ url_for('getdata') }}" method="post">
-        <button type="submit">getData</button>
-    </form>
+
+    <button type="button" onclick=getData()>GetData</button>
 
     <div id="container2">
         <div id="content2">
@@ -38,7 +36,7 @@
             </select>
         </div>
     </div>
-    <button type="button" onclick=submit2()>Submit</button>
+    <button type="button" onclick=submit()>Submit</button>
 
     <!--<button onclick="getData()">filter</button>-->
 
