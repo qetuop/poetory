@@ -68,7 +68,7 @@ def findDiff(src,tgt):
     for y in src.split(" "):
         if y not in tgtSplit:
             diff.append(y)
-    #print(f"\tFind Diff: src = {src}, tgt = {tgt}, diff = {diff}")
+
     return diff
 
 '''
@@ -205,10 +205,8 @@ def setup():
     baseItemFile = os.path.join(Config.DATA_DIR, 'base_items.json')
     with open(baseItemFile, 'r') as file:
         baseItemDict = json.load(file)
-        #print(baseItemDict)
+
         for item in baseItemDict:
-            #print(item)
-            #print(baseItemDict[item]['name'], ':', baseItemDict[item]['item_class'])
             tmpItem = baseItemDict[item]
             itemLookupDict[tmpItem['name']] = {'item_class':tmpItem['item_class'], 'tags':tmpItem['tags']}
 
@@ -275,7 +273,7 @@ def processMod(simpleItem, item, mod, type):
     # this mod could not be found in stats.json, some mods are hidden this will be expected.  This is also to catch
     # items i could not match correctly at this time
     if result is None:
-        print(f'*** ERROR MATCHING: type:{type} | mod:{mod} | name:{item["name"]} | frameType:{item["frameType"]} | typeLine:{item["typeLine"]}')
+        #print(f'*** ERROR MATCHING: type:{type} | mod:{mod} | name:{item["name"]} | frameType:{item["frameType"]} | typeLine:{item["typeLine"]}')
         simpleItem['unmatched'].append(mod)
         return simpleItem
 
@@ -290,7 +288,7 @@ def processMod(simpleItem, item, mod, type):
     try:
         affixId = reverseAffixDict[type,genericMod]
         affixItemDict.setdefault(affixId, []).append(simpleItem) # append this item to the affixId list, first time create empty list
-        print(f'Matched: {genericMod} | {valList} | {affixId}')
+        #print(f'Matched: {genericMod} | {valList} | {affixId}')
 
         with open(Path.cwd() / 'debug' / 'matchedMods.csv', "a+") as write_file:
             write_file.write(f"\"{simpleItem['name']}\", \"{affixId}\", \"{mod}\", \"{genericMod}\", \"{valList}\"\n")
@@ -304,10 +302,9 @@ def processMod(simpleItem, item, mod, type):
 def processItem(item, league, char=None):
     global stashInfo
     if item is None:
-        print("WTF")
         return
 
-    print(f'processItem(): name={item["name"]}')
+    #print(f'processItem(): name={item["name"]}')
 
     # skip this stuff for now
     if item['frameType'] in [4, 5, 6, 8] or 'Flask' in item['typeLine']:  # 4=gem, 5=currency, 6=div, 8=prophecy
@@ -378,7 +375,6 @@ def processData():
         for char in dataDict[league]['characters']:
             for i,v in enumerate(dataDict[league]['characters'][char]['items']):
                 #dataDict[league]['characters'][char]['items'][i] = processItem(v, league, char)
-                print(i,v)
                 processItem(v, league, char)
 
         for tab in dataDict[league]['stash']:
@@ -398,9 +394,10 @@ def getData():
 
     # TODO: temp until a gui input is created
     '''
+    sourceFile = os.path.join(Config.CONFIG_DIR, 'source.json')
     sourceConfig = dict(ritual = {'characters' : ['RitToxRayne', 'RitErekD'], 'stash' : [2,3]})
-    with open("sourceConfig.json", "w") as write_file:
-        json.dump(sourceConfig, write_file, indent=4)
+    with open(sourceFile, "w") as write_file:
+        json.dump(sourceConfig, sourceFile, indent=4)
     '''
     '''
     {
@@ -416,9 +413,12 @@ def getData():
         }
     }
     '''
+    sourceConfig = {}
+    sourceFile = os.path.join(Config.FILTER_DIR, 'source.json')
+    with open(sourceFile, 'r') as file:
+        sourceConfig = json.load(file)
 
-    sourceConfig = json.loads(open('sourceConfig.json').read())
-    print('sourceConfig:',sourceConfig)
+    print('sourceConfig:', sourceConfig)
 
     # reset data
     affixItemDict = {}
@@ -435,13 +435,10 @@ def getData():
     else:
         for character in sourceConfig[league]['characters']:
             inventory = poeq.getCharacterInventory(character)
-            #print('inventory:',inventory)
-            #itemList.extend(inventory['items'])
             dataDict[league]['characters'][character] = inventory
 
         for stashNum in sourceConfig[league]['stash']:
             tab = poeq.getStashTab(league, stashNum)
-            #print('tab:',tab)
             dataDict[league]['stash'][stashNum] = tab
 
         with open("mock/dataDict.json", "w") as write_file:
@@ -515,9 +512,6 @@ def filterdata():
     # find any item with an affix id contained in the filter list and add to table data
     for affixId in affixIdFilterList:
         (affixType, affixText) = affixDict[affixId]
-
-        #print("filterData, affixId:", affixId, affixText)
-
         simpleItemList = []
         try:
             simpleItemList = affixItemDict[affixId]
