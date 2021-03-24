@@ -105,19 +105,22 @@ def setup():
 
     print("SETUP")
 
-    # location
-    location = "./"
-    # directory
-    dir = "debug"
-    # path
-    path = os.path.join(location, dir)
+    # setup some dirs
     # removing directory
     try:
-        shutil.rmtree(path)
+        shutil.rmtree('./debug')
     except:
         pass # does not exist
-
     os.mkdir('debug')
+
+    try:
+        shutil.rmtree('./mock')
+    except:
+        pass # does not exist
+    os.mkdir('mock')
+
+
+
 
     '''
     result = 9 entries
