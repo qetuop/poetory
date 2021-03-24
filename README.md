@@ -25,7 +25,24 @@ set the PATYHON path so packages can be found TODO: how to fix this?
 ```export PYTHONPATH=$PYTHONPATH:$HOME/PycharmProjects/poetory```
 
 ### Configure
-edit config.json and set account, league, poessid
+~~edit config.json and set account, league, poessid~~
+
+edit poetory/filter/source.json and add any character/stash # to grab, surround character names with double quotes and comma seperate. ex:
+
+{
+    "standard": {
+        "characters": [
+            "BOB",
+            "Joe"
+        ],
+        "stash": [
+            1,
+            2,
+            3,
+            4
+        ]
+    }
+}
 
 ### Run
 ```python3.8 poetory.py``` 

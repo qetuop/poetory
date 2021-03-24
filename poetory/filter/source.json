@@ -1,9 +1,13 @@
 {
-    "ritual": {
+    "standard": {
         "characters": [
-            ""
+
         ],
         "stash": [
+            1,
+            2,
+            3,
+            4
         ]
     }
 }
