@@ -159,22 +159,22 @@ def setup():
 
     # TODO: SHould i scrape this from the site everytime its run?, deliver a version of the file?
 
-    statsFile = os.path.join(Config.DATA_DIR, 'stats.json')
-    statsURL = "https://www.pathofexile.com/api/trade/data/stats"
-    statsData = poeq.grabData(statsURL)
-    try:
-        if ( 'error' in statsData.keys() ):
-            print(f"setup: could not parse stats URL: {statsURL} using cached version if exists.  This may not be a problem")
-        else:
-            with open(statsFile, "w") as write_file:
-                json.dump(statsData, write_file, indent=4)
-    except Exception as e:
-        print(f"setup: could not grab stats URL: {statsURL} using cached version if exists.  This may not be a problem")
-        print(e)
-
-    if os.path.exists(statsFile) == False:
-        print(f"setup: stats.json could not be found.  Exiting.")
-        sys.exit(0)
+    # statsFile = os.path.join(Config.DATA_DIR, 'stats.json')
+    # statsURL = "https://www.pathofexile.com/api/trade/data/stats"
+    # statsData = poeq.grabData(statsURL)
+    # try:
+    #     if ( 'error' in statsData.keys() ):
+    #         print(f"setup: could not parse stats URL: {statsURL} using cached version if exists.  This may not be a problem")
+    #     else:
+    #         with open(statsFile, "w") as write_file:
+    #             json.dump(statsData, write_file, indent=4)
+    # except Exception as e:
+    #     print(f"setup: could not grab stats URL: {statsURL} using cached version if exists.  This may not be a problem")
+    #     print(e)
+    #
+    # if os.path.exists(statsFile) == False:
+    #     print(f"setup: stats.json could not be found.  Exiting.")
+    #     sys.exit(0)
 
 
     statsFile = os.path.join(Config.DATA_DIR, 'stats.json')

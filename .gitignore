@@ -140,7 +140,7 @@ poetory/jsonData
 # mystuff
 json_bak/*
 bak/
-data/
+#data/
 debug/
 mock/
 *.bak
