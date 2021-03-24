@@ -16,12 +16,12 @@ from rapidfuzz import process
 
 import uuid
 
-from .app import app
+from app import app
 import poeq
 #import poed
 #from poem import CharacterInfo
 from app.forms import LoginForm, ItemForm, CharacterForm
-from ..config import Config
+from config import Config
 
 # GLOBALS
 stashInfo = {} # store resutls from getStash, used for mapping stash names and numbers
